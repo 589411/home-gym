@@ -27,4 +27,4 @@
 0. （已完成）部位圖示改成同一人形＋色塊，`tools/body_icons.py` 程式繪製；胸用斜面不用橢圓。手機實測時再看是否需微調。
 1. 抽查 `content/videos.json`（157 支）、`content/cues.json` 與 4 個系列，不要的加 `"hidden": true`，重跑 `build_data.py`。
 2. 解除限制後：對 14 個待驗證課程跑品質閘門（取第一天影片的 meta），通過的 `export_content.py` 收進來；再補搜尋「真正每天跟練」的系列（Caroline Girvan 的 EPIC／Power 等多週課程）。
-3. （已上線 2026-10-26：https://gym.launchdock.app ，GitHub Pages＋Cloudflare 灰雲 CNAME，HTTPS 已強制）手機實測播放；PWA（pwa-offline）；清單／進度要跨裝置同步再考慮 firebase-web-sync。
+3. （已上線 2026-10-26：https://gym.launchdock.app ，GitHub Pages＋Cloudflare 灰雲 CNAME，HTTPS 已強制；已上架 lab.launchdock.app，id `home-gym`，封面待補）手機實測播放；PWA（pwa-offline）；清單／進度要跨裝置同步再考慮 firebase-web-sync。
