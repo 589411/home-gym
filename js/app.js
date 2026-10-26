@@ -1,4 +1,4 @@
-/* 在家練 戰情室：挑部位 → 跟著做；系列每日進度；自訂清單；遠距離跟練播放器。
+/* 我家也有健身房：挑部位 → 跟著做；系列每日進度；自訂清單；遠距離跟練播放器。
    狀態只存在本機 localStorage（gym.v1）。圖示來自 js/icons.js 的全域 ICONS（agy 產生，勿在此修改）。 */
 
 // ---------- 圖示 ----------
@@ -203,16 +203,16 @@ function lists(id) {
       ${li.ids.length ? `<ol class="days">${li.ids.map((vid, i) => { const v = VM[vid]; return v ? `<li class="lrow ${S.done[vid] ? 'is-done' : ''}">
         <button class="lplay" data-act="play" data-i="${i}" aria-label="播放第 ${i + 1} 支：${esc(v.title)}"><span class="n">${S.done[vid] ? icon('check', '✓') : i + 1}</span><img alt="" loading="lazy" src="${thumb(vid)}"><span class="t">${esc(v.title)}<small>${mins(v.duration)} 分${v.intensity ? `・強度 ${v.intensity}/5` : ''}</small></span></button>
         <span class="lbtns"><button class="ib" data-act="mv" data-d="-1" data-lid="${li.id}" data-i="${i}" aria-label="上移" ${i === 0 ? 'disabled' : ''}>${UI.up}</button><button class="ib" data-act="mv" data-d="1" data-lid="${li.id}" data-i="${i}" aria-label="下移" ${i === li.ids.length - 1 ? 'disabled' : ''}>${UI.down}</button><button class="ib" data-act="rm" data-lid="${li.id}" data-id="${vid}" aria-label="從清單移除">${UI.close}</button></span></li>` : ''; }).join('')}</ol>`
-        : `<div class="empty"><p>還沒有影片。到戰情室，按卡片右上角的 ＋ 就能加進來。</p><a class="btn primary" href="#/">去戰情室挑影片</a></div>`}`;
+        : `<div class="empty"><p>還沒有影片。到首頁，按卡片右上角的 ＋ 就能加進來。</p><a class="btn primary" href="#/">去首頁挑影片</a></div>`}`;
   }
   return `<section class="hero"><h1 tabindex="-1">我的<em>清單</em></h1><p>把喜歡的影片排成每天的訓練菜單，一鍵連續播放。</p></section>
     <form data-act="newlist" class="newform"><label class="sr" for="nl">新清單名稱</label><input class="field" id="nl" name="n" placeholder="新清單，例如「週一 胸背」" maxlength="30" autocomplete="off"><button class="btn primary">${UI.plus}建立</button></form>
     ${S.lists.length ? `<ul class="days">${S.lists.map(li => `<li><a class="day" href="#/lists/${li.id}"><span class="n">${UI.list}</span><span class="t">${esc(li.name)}<small>${li.ids.length} 支・約 ${mins(li.ids.reduce((a, x) => a + (VM[x]?.duration || 0), 0))} 分</small></span><span class="m">${UI.next}</span></a></li>`).join('')}</ul>`
-      : '<div class="empty"><p>還沒有清單。建一個，或在戰情室卡片上按 ＋ 直接加入。</p></div>'}`;
+      : '<div class="empty"><p>還沒有清單。建一個，或在首頁的影片卡片上按 ＋ 直接加入。</p></div>'}`;
 }
 
 // ---------- 路由（重繪時保留鍵盤焦點） ----------
-const TABS = [['#/', '戰情室'], ['#/series', '跟練系列'], ['#/guides', '動作講解'], ['#/lists', '我的清單']];
+const TABS = [['#/', '首頁'], ['#/series', '跟練系列'], ['#/guides', '動作講解'], ['#/lists', '我的清單']];
 const fkey = el => el && el.dataset && el.dataset.act ? JSON.stringify(el.dataset) : null;
 function render(routeChanged) {
   const h = location.hash || '#/', [, r, id] = h.split('/');

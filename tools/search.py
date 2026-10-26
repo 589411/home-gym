@@ -18,7 +18,7 @@ GUIDE_QUERIES = {  # 動作講解／教學（不是拿來跟練的）
     "resistance-band": ["彈力帶 動作教學 入門", "彈力帶 正確姿勢 常見錯誤", "resistance band exercises form tutorial beginners"],
     "kettlebell": ["壺鈴 擺盪 教學", "壺鈴 入門 動作教學 姿勢", "kettlebell swing form tutorial beginners"],
 }
-# 依訓練部位的搜尋（戰情室用「想練哪裡」挑影片）；國外頻道品質通常較好，英文為主
+# 依訓練部位的搜尋（首頁用「想練哪裡」挑影片）；國外頻道品質通常較好，英文為主
 EQ_EN = {"resistance-band": "resistance band", "kettlebell": "kettlebell"}
 PARTS_EN = ["glutes and legs", "back", "shoulders", "arms biceps triceps", "chest", "core abs", "full body"]
 for _eq, _en in EQ_EN.items():
