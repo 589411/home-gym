@@ -5,33 +5,74 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>在家練 戰情室</title>
 <meta name="description" content="彈力帶、壺鈴居家訓練戰情室：挑部位、跟著做、每天一練，精選高品質影片。">
-<meta name="theme-color" content="#FF6B3D">
+<meta name="theme-color" content="#FFF8EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16171D" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=2">
+<link rel="stylesheet" href="css/app.css?v=3">
 </head>
 <body>
+<a class="skip" href="#app">跳到主要內容</a>
 <header class="topbar">
-  <a href="#/" class="brand" aria-label="回戰情室"><span class="brand-badge">Gym!</span><span class="brand-text">在家練</span></a>
-  <span class="streak" id="streak" title="連續練習天數"></span>
+  <a href="#/" class="brand" aria-label="在家練，回戰情室"><span class="brand-badge">Gym!</span><span class="brand-text">在家練</span></a>
+  <span class="streak" id="streak"></span>
 </header>
 <nav class="tabs" id="tabs" aria-label="主選單"></nav>
-<main id="app"></main>
-<div class="sheet-backdrop" id="backdrop" hidden></div>
-<section class="sheet" id="sheet" hidden></section>
-<dialog id="player">
-  <div class="pbar"><b id="pt"></b><button id="pclose" type="button" aria-label="關閉">✕</button></div>
-  <div class="frame"><div id="ytbox"></div></div>
-  <div class="pctl">
-    <span id="pq"></span>
-    <button id="pprev" type="button">上一支</button>
-    <button id="pdone" type="button" class="primary">完成 ✓</button>
-    <button id="pnext" type="button">下一支</button>
+<main id="app" tabindex="-1" aria-busy="true">
+  <div class="skel" aria-label="載入中">
+    <div class="sk sk-h"></div><div class="sk sk-today"></div>
+    <div class="sk-parts"><i class="sk"></i><i class="sk"></i><i class="sk"></i><i class="sk"></i><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>
+    <div class="grid"><div class="sk sk-card"></div><div class="sk sk-card"></div><div class="sk sk-card"></div></div>
+  </div>
+</main>
+
+<dialog class="sheet" id="sheet"></dialog>
+
+<!-- 遠距離跟練播放器：整個 #pwrap（影片＋大字面板＋控制）可進全螢幕 -->
+<dialog id="player" class="player" aria-labelledby="pt">
+  <div class="pwrap" id="pwrap">
+    <header class="pbar">
+      <div class="ptitle"><b id="pt"></b><small id="pq"></small></div>
+      <button id="pfs" type="button" class="pib" aria-label="全螢幕"></button>
+      <button id="pclose" type="button" class="pib" aria-label="關閉播放器"></button>
+    </header>
+    <div class="pstage">
+      <div class="frame"><div id="ytbox"></div></div>
+      <aside class="cue" id="cue" aria-live="polite" aria-atomic="true">
+        <div class="cue-top"><span class="cue-type" id="ctype"></span><span class="cue-time" id="ctime"></span></div>
+        <div class="cue-bar" aria-hidden="true"><i id="cbar"></i></div>
+        <h2 class="cue-name" id="cname"></h2>
+        <p class="cue-tip" id="ctip"><span class="cue-lab">重點</span><span id="ctipt"></span></p>
+        <p class="cue-watch" id="cwatch"><span class="cue-lab"><span class="wmark" aria-hidden="true">!</span>注意</span><span id="cwatcht"></span></p>
+      </aside>
+      <p class="psum" id="psum" hidden></p>
+    </div>
+    <footer class="pctl">
+      <div class="pmain">
+        <span class="cuenav"><button id="cprev" type="button" class="pbtn" aria-label="上一個動作"><span class="lab">上一個動作</span></button></span>
+        <button id="pplay" type="button" class="pbtn play" aria-label="播放"></button>
+        <span class="cuenav"><button id="cnext" type="button" class="pbtn" aria-label="下一個動作"><span class="lab">下一個動作</span></button></span>
+      </div>
+      <div class="psub">
+        <button id="pvprev" type="button" class="pbtn sm">上一支</button>
+        <button id="pdone" type="button" class="pbtn sm good">完成這支</button>
+        <button id="pvnext" type="button" class="pbtn sm">下一支</button>
+      </div>
+    </footer>
+    <div class="pover" id="pover" hidden role="group" aria-labelledby="povt">
+      <div class="pov-card">
+        <div class="pov-ico" id="povi"></div>
+        <h2 id="povt">練完了！</h2>
+        <p id="povs"></p>
+        <div class="pov-btns"><button type="button" class="pbtn play" id="povnext">下一支</button><button type="button" class="pbtn sm" id="povstay">留在這支</button><button type="button" class="pbtn sm" id="povclose">結束</button></div>
+      </div>
+    </div>
   </div>
 </dialog>
-<div class="toast" id="toast" role="status" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" popover="manual"></div>
+<script src="js/icons.js?v=3"></script>
 <script src="https://www.youtube.com/iframe_api" async></script>
-<script src="js/app.js?v=2"></script>
+<script src="js/app.js?v=3"></script>
 </body>
 </html>

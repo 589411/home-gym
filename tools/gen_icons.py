@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""agy 生成 SVG 圖示 → 程式驗證（只允許安全元素、無腳本/外連）→ js/icons.js ＋ 預覽頁。
+"""codex 生成 SVG 圖示 → 程式驗證（只允許安全元素、無腳本/外連）→ js/icons.js ＋ 預覽頁。
 python3 tools/gen_icons.py [--model "Claude Opus 4.6 (Thinking)"] [--only chest,back]"""
 import argparse, json, os, re, subprocess, sys
 import xml.etree.ElementTree as ET
@@ -50,22 +50,24 @@ def validate(name, svg):
 
 def call(keys, model, note=""):
     prompt = PROMPT.format(need="\n".join(f"- {k}: {NEED[k]}" for k in keys), keys=json.dumps(keys)) + ("\n\n上一版的審查回饋（必須修正）：\n" + note if note else "")
-    r = subprocess.run(["agy", "-p", prompt, "--print-timeout", "6m", "--sandbox", "--model", model],
-                       capture_output=True, text=True, timeout=420, cwd=CACHE)
+    # 圖示改用 codex CLI（使用者指定）：唯讀沙箱、不存 session、只取最後一則回覆
+    cmd = ["codex", "exec", "--sandbox", "read-only", "--skip-git-repo-check", "--ephemeral", "-C", CACHE]
+    if model: cmd += ["-m", model]
+    r = subprocess.run(cmd + [prompt], capture_output=True, text=True, timeout=420)
     m = re.search(r"\{.*\}", r.stdout, re.S)
-    if not m: raise RuntimeError("agy 沒有回傳 JSON：" + (r.stdout[-200:] or r.stderr[-200:]))
+    if not m: raise RuntimeError("codex 沒有回傳 JSON：" + (r.stdout[-200:] or r.stderr[-200:]))
     return json.loads(m.group(0))
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--model", default="Claude Opus 4.6 (Thinking)"); ap.add_argument("--only"); ap.add_argument("--note", default=""); ap.add_argument("--jobs", type=int, default=1); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("--model", default=""); ap.add_argument("--only"); ap.add_argument("--note", default=""); ap.add_argument("--jobs", type=int, default=1); a = ap.parse_args()
     keys = a.only.split(",") if a.only else list(NEED)
     raw = json.load(open(RAW)) if os.path.exists(RAW) else {}
     if a.jobs > 1:  # 一個圖示一次呼叫，並行；單支逾時/失敗不拖垮其他
         from concurrent.futures import ThreadPoolExecutor
         def one(k):
             try: return call([k], a.model, a.note)
-            except Exception as e: print(f"✗ {k} agy 失敗：{str(e)[:80]}", file=sys.stderr); return {}
+            except Exception as e: print(f"✗ {k} codex 失敗：{str(e)[:80]}", file=sys.stderr); return {}
         with ThreadPoolExecutor(a.jobs) as ex:
             for r in ex.map(one, keys): raw.update(r)
     else:
@@ -76,7 +78,7 @@ def main():
         errs = validate(k, raw[k]) if k in raw else ["缺少"]
         if errs: print(f"✗ {k}: {'；'.join(errs)}", file=sys.stderr)
         else: good[k] = re.sub(r"\s+", " ", raw[k]).strip()
-    open(OUT, "w").write("// 由 tools/gen_icons.py 產生（agy 繪製、程式驗證），勿手改\nconst ICONS = " + json.dumps(good, ensure_ascii=False, indent=1) + ";\n")
+    open(OUT, "w").write("// 由 tools/gen_icons.py 產生（codex 繪製、程式驗證），勿手改\nconst ICONS = " + json.dumps(good, ensure_ascii=False, indent=1) + ";\n")
     prev = "<body style='font:14px sans-serif;display:grid;grid-template-columns:repeat(5,160px);gap:16px;padding:16px'>" + "".join(
         f"<div style='text-align:center'><div style='width:96px;height:96px;margin:auto;color:#FF6B3D'>{s}</div>{k}</div>" for k, s in good.items())
     open(os.path.join(CACHE, "icons_preview.html"), "w").write(prev)
