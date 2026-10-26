@@ -9,3 +9,10 @@ for name, key in (("videos", lambda v: -(v.get("quality") or 0)), ("programs", l
     rows.sort(key=key)
     json.dump(rows, open(os.path.join(ROOT, "data", name + ".json"), "w"), ensure_ascii=False, separators=(",", ":"))
     print(f"{name}: {len(rows)} 筆")
+# cues：{videoId: [...]}，依影片 hidden 過濾
+cp = os.path.join(ROOT, "content", "cues.json")
+if os.path.exists(cp):
+    hid = {v["id"] for v in json.load(open(os.path.join(ROOT, "content", "videos.json"))) if v.get("hidden")}
+    cues = {k: v for k, v in json.load(open(cp)).items() if k not in hid}
+    json.dump(cues, open(os.path.join(ROOT, "data", "cues.json"), "w"), ensure_ascii=False, separators=(",", ":"))
+    print(f"cues: {len(cues)} 支")

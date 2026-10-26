@@ -13,11 +13,18 @@
 - **網站（hey-o 風格）**：戰情室（部位磁磚＋器材／時間／強度／程度，依品質排序，🎲隨機一支）、跟練系列（每日進度、第 N 天）、動作講解、我的清單（自訂播放清單、連續播放、播完自動記完成與連續天數）。狀態只存本機 localStorage。
 - agy 1.4.7：模型用 `Gemini 3.8 Flash (High)`；prompt 須寫「不要使用任何工具」。
 
+## 進展（2026-10-26 下半）
+- **UI/UX 改版**（Opus 子代理做、我審查實測）：首屏「今天的訓練」入口＋大部位磁磚，條件收進「更多條件」；清單可排序、刪除可復原；無 emoji；`?demo=1` 注入假 cues 供測試（預設關閉）。
+- **遠距離跟練面板**：使用者要求「不逐字翻譯、不預告下一動作，只強調目前動作的重點與注意事項，字要大」。已實作：動作名稱＋重點＋注意事項（空則整塊隱藏）、章節跳段、全螢幕。資料 `content/cues.json` → `data/cues.json`（`tools/cues.py`：時間來自 YouTube 章節，LLM 只寫中文名／重點／注意事項；動作段<2 的影片不收）。**123 支有 cues（跟練 105/132、講解 18/25）**，其餘沒有章節，面板退回只顯示影片＋摘要。cues 內容是 AI 依公認動作要領寫的，**不是影片內教練的原話**，有些偏通用（例：各種弓箭步都寫「前腳踩穩」）。
+- **圖示**：使用者指定改用 **codex CLI** 生成（已 `npm i -g @openai/codex` 並登入，`tools/gen_icons.py` 走 `codex exec`，逐個並行，程式驗證只允許安全元素）。胸／背／肩／核心／全身／骰子／火焰／打勾可用；**手臂、臀腿仍不合格**（重畫 3 輪仍像蛇／剪影）。
+- **agy 額度**：Gemini 3.8 Flash 與 Sonnet 4.6 皆 RESOURCE_EXHAUSTED，約 118–167 小時後重置；cues 後半段改用 codex（`cues.py --engine codex`）。
+
 ## 卡在哪
 - **YouTube 目前對本機 IP 要求登入驗證（bot check）**——連續抓太多觸發。**不要用 cookies 繞過**，等它自己解除（先 `yt-dlp --skip-download --print id <url>` 試一支）。影響：14 個每日課程候選（TIFF x DAN 6 Week Shred、Vera LaRo 8 Week 等）還沒驗證頻道品質，`tools/.cache/programs_q.json` 裡 `pass:false`。
 - 未實測：手機版面、實際播放（IFrame API 播完自動下一支）、離線／PWA。
 
 ## 下一個具體動作
-1. 抽查 `content/videos.json`（157 支）與 4 個系列，不要的加 `"hidden": true`，重跑 `build_data.py`。
+0. 手臂／臀腿圖示：改人工描／換畫法／改成器材符號（待使用者決定）。
+1. 抽查 `content/videos.json`（157 支）、`content/cues.json` 與 4 個系列，不要的加 `"hidden": true`，重跑 `build_data.py`。
 2. 解除限制後：對 14 個待驗證課程跑品質閘門（取第一天影片的 meta），通過的 `export_content.py` 收進來；再補搜尋「真正每天跟練」的系列（Caroline Girvan 的 EPIC／Power 等多週課程）。
 3. 手機實測播放；上線（GitHub Pages，skill static-site-deploy）＋ PWA（pwa-offline）；清單／進度要跨裝置同步再考慮 firebase-web-sync。
