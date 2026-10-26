@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>居家健身影片庫</title>
+<meta name="description" content="彈力帶、彈力繩、壺鈴居家健身影片，依器材、訓練部位、強度、時長篩選">
+<link rel="stylesheet" href="css/app.css?v=1">
+</head>
+<body>
+<header>
+  <h1>居家健身影片庫</h1>
+  <p class="sub">彈力帶・彈力繩・壺鈴　<span id="count"></span></p>
+</header>
+<main>
+  <input id="q" type="search" placeholder="搜尋標題或頻道" aria-label="搜尋">
+  <section id="filters"></section>
+  <button id="reset" type="button" hidden>清除篩選</button>
+  <div id="list" class="grid"></div>
+  <p id="empty" hidden>沒有符合的影片，試著放寬條件。</p>
+</main>
+<dialog id="player">
+  <button id="close" type="button" aria-label="關閉">✕</button>
+  <div class="frame"><iframe id="yt" title="影片" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+  <h2 id="pt"></h2><p id="pm"></p><a id="pl" target="_blank" rel="noopener">在 YouTube 開啟</a>
+</dialog>
+<footer>影片版權屬原頻道，本站僅以 YouTube 官方嵌入播放。分類由 AI 依標題推測，僅供參考。</footer>
+<script src="js/app.js?v=1"></script>
+</body>
+</html>
