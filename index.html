@@ -1,30 +1,37 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>居家健身影片庫</title>
-<meta name="description" content="彈力帶、彈力繩、壺鈴居家健身影片，依器材、訓練部位、強度、時長篩選">
-<link rel="stylesheet" href="css/app.css?v=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>在家練 戰情室</title>
+<meta name="description" content="彈力帶、壺鈴居家訓練戰情室：挑部位、跟著做、每天一練，精選高品質影片。">
+<meta name="theme-color" content="#FF6B3D">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css?v=2">
 </head>
 <body>
-<header>
-  <h1>居家健身影片庫</h1>
-  <p class="sub">彈力帶・彈力繩・壺鈴　<span id="count"></span></p>
+<header class="topbar">
+  <a href="#/" class="brand" aria-label="回戰情室"><span class="brand-badge">Gym!</span><span class="brand-text">在家練</span></a>
+  <span class="streak" id="streak" title="連續練習天數"></span>
 </header>
-<main>
-  <input id="q" type="search" placeholder="搜尋標題或頻道" aria-label="搜尋">
-  <section id="filters"></section>
-  <button id="reset" type="button" hidden>清除篩選</button>
-  <div id="list" class="grid"></div>
-  <p id="empty" hidden>沒有符合的影片，試著放寬條件。</p>
-</main>
+<nav class="tabs" id="tabs" aria-label="主選單"></nav>
+<main id="app"></main>
+<div class="sheet-backdrop" id="backdrop" hidden></div>
+<section class="sheet" id="sheet" hidden></section>
 <dialog id="player">
-  <button id="close" type="button" aria-label="關閉">✕</button>
-  <div class="frame"><iframe id="yt" title="影片" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
-  <h2 id="pt"></h2><p id="pm"></p><a id="pl" target="_blank" rel="noopener">在 YouTube 開啟</a>
+  <div class="pbar"><b id="pt"></b><button id="pclose" type="button" aria-label="關閉">✕</button></div>
+  <div class="frame"><div id="ytbox"></div></div>
+  <div class="pctl">
+    <span id="pq"></span>
+    <button id="pprev" type="button">上一支</button>
+    <button id="pdone" type="button" class="primary">完成 ✓</button>
+    <button id="pnext" type="button">下一支</button>
+  </div>
 </dialog>
-<footer>影片版權屬原頻道，本站僅以 YouTube 官方嵌入播放。分類由 AI 依標題推測，僅供參考。</footer>
-<script src="js/app.js?v=1"></script>
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="https://www.youtube.com/iframe_api" async></script>
+<script src="js/app.js?v=2"></script>
 </body>
 </html>

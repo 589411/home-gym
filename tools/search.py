@@ -14,7 +14,17 @@ QUERIES = {
     "resistance-band": ["彈力帶 居家 全身訓練", "彈力繩 居家 訓練", "resistance band home workout full body"],
     "kettlebell": ["壺鈴 居家 訓練", "壺鈴 全身 初學者", "kettlebell home workout full body"],
 }
-MIN_SEC, MAX_SEC = 180, 3600  # 太短是 Shorts、太長是直播/合輯
+GUIDE_QUERIES = {  # 動作講解／教學（不是拿來跟練的）
+    "resistance-band": ["彈力帶 動作教學 入門", "彈力帶 正確姿勢 常見錯誤", "resistance band exercises form tutorial beginners"],
+    "kettlebell": ["壺鈴 擺盪 教學", "壺鈴 入門 動作教學 姿勢", "kettlebell swing form tutorial beginners"],
+}
+# 依訓練部位的搜尋（戰情室用「想練哪裡」挑影片）；國外頻道品質通常較好，英文為主
+EQ_EN = {"resistance-band": "resistance band", "kettlebell": "kettlebell"}
+PARTS_EN = ["glutes and legs", "back", "shoulders", "arms biceps triceps", "chest", "core abs", "full body"]
+for _eq, _en in EQ_EN.items():
+    QUERIES[_eq] += [f"{_en} {p} workout at home follow along" for p in PARTS_EN]
+MIN_SEC, MAX_SEC = 120, 3600
+MIN_VIEWS = 50_000  # 搜尋階段的粗篩；精細品質閘門在 quality.py  # 太短是 Shorts、太長是直播/合輯
 
 
 def search(q, n):
@@ -36,10 +46,10 @@ def main():
     for eq, qs in QUERIES.items():
         if a.equipment and eq != a.equipment:
             continue
-        for q in qs:
+        for q in qs + GUIDE_QUERIES[eq]:
             for v in search(q, a.n):
                 dur = v.get("duration") or 0
-                if not (MIN_SEC <= dur <= MAX_SEC) or v["id"] in found:
+                if not (MIN_SEC <= dur <= MAX_SEC) or (v.get("view_count") or 0) < MIN_VIEWS or v["id"] in found:
                     continue
                 found[v["id"]] = {
                     "id": v["id"], "title": v.get("title"), "channel": v.get("channel"),

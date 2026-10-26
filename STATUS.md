@@ -5,23 +5,19 @@
 ## 核心任務
 整理 YouTube 上「在家用彈力帶／彈力繩／壺鈴等器材健身」的影片，做成可依器材、部位、時長篩選的靜態網站。用 agy（Google Antigravity CLI）做分類整理。
 
-## 現況
-- 已 `git init`。`tools/search.py`（yt-dlp 搜尋，過濾 3–60 分鐘）→ `tools/classify.py`（oEmbed 驗證 → agy 批次分類 → 程式把關）可跑通，47 支（彈力帶 26、壺鈴 21）全部分類完，結果在 `tools/.cache/classified.json`（gitignore，可重跑）。
-- 分類軸（依使用者要求參考健身規劃）：`split` 分化（full-body/upper/lower/push/pull/legs/core）、`muscles` 肌群、`style` 型態（strength/hiit/cardio/mobility/warmup）、`intensity` 強度 1–5、`level` 適合程度、`equipment` 器材（須在標題找到關鍵字，含簡體，否則標 unverified）。
-- agy 1.4.7 模型清單已變：`Gemini 3.1 Pro` 不存在，改用 `Gemini 3.8 Flash (High)`。prompt 要寫「不要使用任何工具」，否則無頭模式會因要執行指令被擋。
-
-- 篩選網站已完成（純靜態，`index.html`＋`css/app.css`＋`js/app.js`）：器材／部位／肌群／型態／強度／程度／時長／語言，組內 OR、組間 AND，標題／頻道搜尋，篩選狀態寫入網址 hash 可分享，點卡片以 youtube-nocookie 嵌入播放，支援深色模式。資料流：`content/videos.json`（唯一手編處，加 `"hidden": true` 可排除）→ `python3 tools/build_data.py` → `data/videos.json`。
-- 本機實測（Chrome＋http.server）：載入 47 支、壺鈴篩出 21、壺鈴＋強度 4 剩 5、清除回 47、搜尋 Caroline 剩 3、開關播放視窗正常、主控台無錯誤。**未實測**：手機版面、實際影片播放（背景視窗無法播放）、PWA／離線（尚未做）。
-
-## 已知限制
-- 強度／肌群只根據標題與時長推測（沒看字幕或內容），僅供篩選參考；split 有些為空（標題沒線索）。
-- 標題時長與實際不符的情況存在（例：標 9 分鐘、實際 14 分鐘），以 yt-dlp 的 duration 為準。
+## 現況（2026-10-26）
+- **方向（使用者）**：戰情室——挑想練的部位、存播放清單、每天打開跟著做；分「講解」與「跟著做的系列」兩類；不限國內，國外品質通常較好；**agy 收集素材、Claude 把關**；舊版 47 支「品質很差」（只是搜尋排序，沒篩）。
+- **管線**：`search.py`（yt-dlp 搜尋＋依部位的英文查詢，粗篩觀看≥5萬）→ `enrich.py`（抓真實觀看／讚／訂閱／日期／說明／章節，快取 `tools/.cache/meta/`）→ `quality.py`（硬門檻：觀看≥5萬、頻道訂閱≥5萬、讚率≥0.8%、說明≥150字、≤9年、擋高齡／孕婦／減脂行銷；另算 0–100 品質分）→ `classify.py`（agy 看標題＋說明＋章節分類，`kind`=follow/guide；器材須在文字找到，否則 unverified）→ `export_content.py` → `content/*.json`（唯一手編處，加 `"hidden": true` 排除）→ `build_data.py` → `data/`。
+- **每日課程**：`search_programs.py` 搜播放清單（標題像課程、≥5支、多數≥5分鐘）→ `classify_programs.py`；品質改用「頻道是否已通過影片閘門」判斷。目前通過 4 個（Workout With Roxanne 28 天壺鈴 SURGE／IGNITE、28 天啞鈴、ACHV PEAK 31 天彈力帶）。
+- **現有資料**：163 支過品質閘門 → 157 支入庫（跟練 132、講解 25；70 個頻道；彈力帶 81、壺鈴 69）。
+- **網站（hey-o 風格）**：戰情室（部位磁磚＋器材／時間／強度／程度，依品質排序，🎲隨機一支）、跟練系列（每日進度、第 N 天）、動作講解、我的清單（自訂播放清單、連續播放、播完自動記完成與連續天數）。狀態只存本機 localStorage。
+- agy 1.4.7：模型用 `Gemini 3.8 Flash (High)`；prompt 須寫「不要使用任何工具」。
 
 ## 卡在哪
-- 無。
+- **YouTube 目前對本機 IP 要求登入驗證（bot check）**——連續抓太多觸發。**不要用 cookies 繞過**，等它自己解除（先 `yt-dlp --skip-download --print id <url>` 試一支）。影響：14 個每日課程候選（TIFF x DAN 6 Week Shred、Vera LaRo 8 Week 等）還沒驗證頻道品質，`tools/.cache/programs_q.json` 裡 `pass:false`。
+- 未實測：手機版面、實際播放（IFrame API 播完自動下一支）、離線／PWA。
 
 ## 下一個具體動作
-1. 人工抽查 `content/videos.json`（47 支），不要的加 `"hidden": true` 後重跑 build_data.py。
-2. 手機實測版面與播放；確認後建 GitHub repo、開 Pages（參考 skill static-site-deploy）。
-3. 擴大搜尋補 push/pull/legs 缺口（「彈力帶 背」「壺鈴 臀」等）→ search.py → classify.py → 併入 content。
-4. 視需要加 PWA（skill pwa-offline）與「週訓練計畫」視圖。
+1. 抽查 `content/videos.json`（157 支）與 4 個系列，不要的加 `"hidden": true`，重跑 `build_data.py`。
+2. 解除限制後：對 14 個待驗證課程跑品質閘門（取第一天影片的 meta），通過的 `export_content.py` 收進來；再補搜尋「真正每天跟練」的系列（Caroline Girvan 的 EPIC／Power 等多週課程）。
+3. 手機實測播放；上線（GitHub Pages，skill static-site-deploy）＋ PWA（pwa-offline）；清單／進度要跨裝置同步再考慮 firebase-web-sync。

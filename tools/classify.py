@@ -20,6 +20,7 @@ EQUIP = {  # 標籤 → 標題需出現的關鍵字（小寫比對）
 MUSCLES = {"chest", "back", "shoulders", "arms", "quads", "hamstrings", "glutes", "calves", "core"}
 SPLIT = {"full-body", "upper", "lower", "push", "pull", "legs", "core"}  # 健身規劃的分化方式
 STYLE = {"strength", "hiit", "cardio", "mobility", "warmup"}  # 訓練型態
+KIND = {"follow", "guide"}  # follow=跟著做（整支從頭練到尾）／guide=講解教學（動作要領、器材、觀念）
 LEVEL = {"beginner", "intermediate", "advanced"}  # 適合程度
 # 強度 1–5：1 拉伸/熱身 2 輕度 3 中等肌力 4 高強度（超級組/HIIT） 5 極高強度
 
@@ -46,29 +47,31 @@ def call_agy(prompt, model):
 
 
 def build_prompt(batch):
-    items = [{"id": c["id"], "title": c["title"], "channel": c["channel"], "minutes": round(c["duration"] / 60)} for c in batch]
+    items = [{"id": c["id"], "title": c["title"], "channel": c["channel"], "minutes": round(c["duration"] / 60),
+              "description": c["_desc"][:500], "chapters": c["_chapters"][:12]} for c in batch]
     return f"""你是居家健身影片分類員。不要使用任何工具、不要讀寫檔案或執行指令，直接在回覆中輸出結果。
-只根據下列資料判斷，不要編造；不確定就用 null 或空陣列。
+只根據下列資料（標題、說明欄、章節）判斷，不要編造；不確定就用 null 或空陣列。
 輸入（JSON 陣列）：
 {json.dumps(items, ensure_ascii=False)}
 
 只輸出一個 JSON 陣列，每支影片一個物件、id 原樣照抄，欄位：
 - id: 原樣
-- equipment: 陣列，從 {sorted(EQUIP)} 選，只列標題明確提到的器材
+- kind: "follow" 或 "guide"。follow＝影片帶著觀眾從頭到尾做一套訓練（如「20分鐘全身訓練」「跟練」）；guide＝講解教學（動作要領、姿勢、常見錯誤、器材介紹、觀念、課表說明）。標題看不出來就選 null
+- equipment: 陣列，從 {sorted(EQUIP)} 選，只列標題、說明或章節明確提到、而且是主要使用的器材
 - split: 陣列，訓練分化，從 {sorted(SPLIT)} 選（push=胸肩三頭推類，pull=背二頭拉類）
 - muscles: 陣列，主要訓練肌群，從 {sorted(MUSCLES)} 選
 - style: 陣列，從 {sorted(STYLE)} 選
 - intensity: 整數 1–5（1 拉伸/熱身，2 輕度，3 中等肌力，4 高強度如超級組/HIIT，5 極高強度），標題沒線索就依型態與時長保守估計
 - level: {sorted(LEVEL)} 之一，沒線索就 null
 - homeFriendly: true/false
-- summaryZh: 一句台灣繁體中文摘要（20–40 字），只根據標題
+- summaryZh: 一句台灣繁體中文摘要（20–40 字），說明這支影片練什麼、怎麼練
 - lang: "zh" 或 "en"
 不要輸出任何 JSON 以外的文字。"""
 
 
 def validate(rec, cand):
     errs = []
-    title = cand["title"].lower()
+    title = cand["_text"]  # 標題＋說明＋章節
     eq = [e for e in rec.get("equipment") or [] if e in EQUIP]
     rec["equipment"] = [e for e in eq if any(k in title for k in EQUIP[e])]
     if len(rec["equipment"]) != len(rec.get("equipment") or []) or not rec["equipment"]:
@@ -79,6 +82,8 @@ def validate(rec, cand):
         rec["intensity"] = None
     if rec.get("level") not in LEVEL:
         rec["level"] = None
+    if rec.get("kind") not in KIND:
+        rec["kind"] = None
     if not isinstance(rec.get("summaryZh"), str) or not rec["summaryZh"]:
         errs.append("缺 summaryZh")
     return errs
@@ -90,7 +95,14 @@ def main():
     ap.add_argument("--limit", type=int)
     ap.add_argument("--model", default="Gemini 3.8 Flash (High)")
     a = ap.parse_args()
-    cands = json.load(open(os.path.join(CACHE, "candidates.json")))[: a.limit]
+    cands = json.load(open(os.path.join(CACHE, "candidates.json")))
+    qual = json.load(open(os.path.join(CACHE, "quality.json")))
+    cands = [c for c in cands if qual.get(c["id"], {}).get("pass")][: a.limit]  # 先過品質閘門
+    for c in cands:
+        m = json.load(open(os.path.join(CACHE, "meta", c["id"] + ".json")))
+        c["_desc"], c["_chapters"] = m.get("description") or "", [ch["title"] for ch in m.get("chapters") or []]
+        c["_text"] = (c["title"] + " " + c["_desc"] + " " + " ".join(c["_chapters"])).lower()
+        c["quality"] = qual[c["id"]]["score"]
     out_path = os.path.join(CACHE, "classified.json")
     done = {r["id"]: r for r in json.load(open(out_path))} if os.path.exists(out_path) else {}
     todo = [c for c in cands if c["id"] not in done]
@@ -118,7 +130,7 @@ def main():
             if errs:
                 print(f"  ✗ {cand['id']}：{errs}", file=sys.stderr)
                 continue
-            done[cand["id"]] = {**cand, **{k: rec.get(k) for k in ("equipment", "split", "muscles", "style", "intensity", "level", "homeFriendly", "summaryZh", "lang", "unverified")}}
+            done[cand["id"]] = {**{k: v for k, v in cand.items() if not k.startswith("_")}, **{k: rec.get(k) for k in ("kind", "equipment", "split", "muscles", "style", "intensity", "level", "homeFriendly", "summaryZh", "lang", "unverified")}}
         json.dump(list(done.values()), open(out_path, "w"), ensure_ascii=False, indent=1)  # 每批存檔，可續跑
     print(f"完成：{len(done)}/{len(cands)} 支 → {out_path}")
 
