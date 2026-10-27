@@ -315,13 +315,35 @@ function load() {
   else if (!yt) {
     const mk = () => {
       if (yt) return;
-      yt = new YT.Player('ytbox', { host: 'https://www.youtube-nocookie.com', videoId: queue[qi], playerVars: { rel: 0, playsinline: 1, autoplay: 1, modestbranding: 1 },
+      yt = new YT.Player('ytbox', { host: 'https://www.youtube-nocookie.com', videoId: queue[qi], playerVars: { rel: 0, playsinline: 1, autoplay: 1, modestbranding: 1, cc_load_policy: 1, cc_lang_pref: 'zh-Hant', hl: 'zh-TW' },
         events: { onReady: () => { ytReady = true; if (yt.getVideoData && yt.getVideoData().video_id !== queue[qi]) yt.loadVideoById(queue[qi]); syncPlayBtn(); },
-          onStateChange: e => { syncPlayBtn(); if (e.data === 0) ended(); } } });
+          onStateChange: e => { syncPlayBtn(); if (e.data === 1) zhCaptions(); if (e.data === 0) ended(); } } });
     };
     if (window.YT && YT.Player) mk(); else { const prev = window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady = () => { prev && prev(); mk(); }; }
   }
   syncPlayBtn();
+}
+// 預設開字幕並自動翻成繁中。captions 模組的 setOption 是 YouTube 未公開的介面，失敗就維持原字幕，不影響播放。
+let capFor = '', capTimer = 0;
+function zhCaptions() {
+  clearInterval(capTimer);
+  try {
+    const id = yt.getVideoData && yt.getVideoData().video_id;
+    if (!id || capFor === id) return; capFor = id;
+    let n = 0;
+    capTimer = setInterval(() => {   // 字幕清單載入要幾秒，輪詢到有為止（最多約 15 秒）
+      try {
+        yt.loadModule('captions');
+        const tl = yt.getOption('captions', 'tracklist') || [];
+        if (tl.length) {
+          clearInterval(capTimer);
+          if (tl.some(t => /^zh/.test(t.languageCode))) return;   // 已有中文字幕，cc_lang_pref 會選
+          const t = tl.find(x => x.is_translateable);
+          if (t) yt.setOption('captions', 'track', { languageCode: t.languageCode, translationLanguage: { languageCode: 'zh-Hant', languageName: '中文（繁體）' } });
+        } else if (++n > 30) clearInterval(capTimer);
+      } catch (e) { clearInterval(capTimer); }
+    }, 500);
+  } catch (e) {}
 }
 function finish() { const id = queue[qi]; const first = !doneToday(); if (!S.done[id]) { S.done[id] = Date.now(); save(); } return first; }
 function celebrate(auto) {

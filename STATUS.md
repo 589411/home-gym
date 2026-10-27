@@ -19,6 +19,8 @@
 - **圖示**：使用者指定改用 **codex CLI** 生成（已 `npm i -g @openai/codex` 並登入，`tools/gen_icons.py` 走 `codex exec`，逐個並行，程式驗證只允許安全元素）。胸／背／肩／核心／全身／骰子／火焰／打勾可用；七個部位圖示已改由 `tools/body_icons.py` 以同一人形＋色塊繪製（codex 僅剩 dice／flame／check）。
 - **agy 額度**：Gemini 3.8 Flash 與 Sonnet 4.6 皆 RESOURCE_EXHAUSTED，約 118–167 小時後重置；cues 後半段改用 codex（`cues.py --engine codex`）。
 
+- **字幕預設開＋自動翻繁中**（2026-10-27）：`cc_load_policy` 開字幕，`zhCaptions()` 輪詢字幕清單，有中文軌就用、否則把第一條可翻譯軌翻成繁中。用的是 YouTube 未公開的 captions setOption，失敗時退回原字幕。已實測有字幕的影片；**很多健身影片根本沒有字幕軌**（抽樣第一支就沒有），那種只能維持無字幕。
+
 ## 卡在哪
 - **YouTube 目前對本機 IP 要求登入驗證（bot check）**——連續抓太多觸發。**不要用 cookies 繞過**，等它自己解除（先 `yt-dlp --skip-download --print id <url>` 試一支）。影響：14 個每日課程候選（TIFF x DAN 6 Week Shred、Vera LaRo 8 Week 等）還沒驗證頻道品質，`tools/.cache/programs_q.json` 裡 `pass:false`。
 - 未實測：手機版面、實際播放（IFrame API 播完自動下一支）、離線／PWA。
