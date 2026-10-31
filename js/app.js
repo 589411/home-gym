@@ -145,7 +145,7 @@ function todayBlock(rows) {
     : `<a class="today-main ghost" href="#/series"><span class="tm-body"><span class="k">還沒有進行中的課表</span><span class="t">挑一個每日跟練系列</span><span class="s">28–31 天，一天一支，系統幫你記第幾天</span></span><span class="tm-go">${UI.next}</span></a>`;
   const rand = rows.length ? `<button class="today-rand" data-act="rand">${icon('dice')}<span><b>隨機一支</b><small>${S.f.parts.length ? S.f.parts.map(p => PN[p]).join('・') : '從精選'}${S.f.parts.length ? '的精選' : '中'}挑</small></span></button>` : '';
   return `<section class="today" aria-label="今天的訓練"><div class="today-head"><h2>今天的訓練</h2><span>${status}${fl}</span></div>
-    <div class="today-grid">${cont}${rand}</div>${historyBlock()}</section>`;
+    <div class="today-grid">${cont}${rand}</div>${historyBlock()}${accountLine()}</section>`;
 }
 function home(kind) {
   const isGuide = kind === 'guide', rows = filtered(kind); ctx = rows.map(v => v.id);
@@ -229,7 +229,21 @@ function historyBlock() {
   for (const x of [...S.log].sort((a, b) => b.t - a.t)) { const k = new Date(x.t).toDateString(); if (!by.has(k)) by.set(k, { t: x.t, ids: [] }); const g = by.get(k); if (!g.ids.includes(x.id)) g.ids.push(x.id); }
   const rows = [...by.values()].slice(0, 14).map(g => { const d = new Date(g.t);
     return `<li><b>${d.getMonth() + 1}/${d.getDate()}（${'日一二三四五六'[d.getDay()]}）</b> ${g.ids.map(id => esc(T[id] || id)).join('、')}</li>`; }).join('');
-  return `<details class="history"><summary>練習紀錄（累計 ${totalDays()} 天）</summary><ul>${rows}</ul><p class="note">紀錄只存在這個瀏覽器；清除瀏覽器資料會不見。</p></details>`;
+  return `<details class="history"><summary>練習紀錄（累計 ${totalDays()} 天）</summary><ul>${rows}</ul></details>`;
+}
+// 選用登入：沒登入只存在這個瀏覽器；登入後同步到雲端（js/cloud.js）
+function accountLine() {
+  const C = window.Cloud; if (!C) return '';
+  const u = C.user();
+  return u ? `<p class="acct">已用 Google 登入${u.email ? `（${esc(u.email)}）` : ''}，練習紀錄會同步到雲端。<button type="button" class="linkbtn" data-act="logout">登出</button></p>`
+    : `<p class="acct">紀錄只存在這個瀏覽器，清除瀏覽器資料會不見。<button type="button" class="linkbtn" data-act="login">用 Google 登入</button>可備份到雲端、換裝置也看得到（選用）。</p>`;
+}
+let syncing = false;
+function cloudSync(quiet) {
+  const C = window.Cloud; if (!C || !C.user() || syncing) return; syncing = true;
+  C.sync(S.log).then(log => { S.log = log; save(); render(); if (!quiet) toast(`已登入，練習紀錄已同步（累計 ${totalDays()} 天）`); })
+    .catch(() => { if (!C.user()) render(); if (!quiet) toast('雲端同步失敗，紀錄仍存在這個瀏覽器'); })
+    .finally(() => { syncing = false; });
 }
 const TABS = [['#/', '首頁'], ['#/series', '跟練系列'], ['#/guides', '動作講解'], ['#/lists', '我的清單']];
 const fkey = el => el && el.dataset && el.dataset.act ? JSON.stringify(el.dataset) : null;
@@ -368,7 +382,7 @@ function finish() {
   const id = queue[qi], first = !doneToday(), now = Date.now();
   if (!S.done[id]) S.done[id] = now;
   // 同一支影片同一天只記一次（避免連按「完成這支」重複），隔天重練會再記
-  if (!S.log.some(x => x.id === id && day(x.t) === day(now))) S.log.push({ id, t: now });
+  if (!S.log.some(x => x.id === id && day(x.t) === day(now))) { S.log.push({ id, t: now }); window.Cloud && Cloud.add({ id, t: now }); }
   save(); return first;
 }
 function celebrate(auto) {
@@ -463,6 +477,8 @@ document.addEventListener('click', e => {
   else if (a === 'rand') { const pool = ctx.filter(id => !S.done[id]); const ids = pool.length ? pool : ctx; play([ids[Math.floor(Math.random() * ids.length)]], 0); }
   else if (a === 'cont') { const nx = nextUp(); if (nx) play(nx.ids, nx.i, S.last); }
   else if (a === 'addlist') addSheet(d.id);
+  else if (a === 'login') window.Cloud && Cloud.signIn();
+  else if (a === 'logout') { Cloud.signOut(); render(); toast('已登出；這個瀏覽器裡的紀錄仍保留'); }
   else if (a === 'closesheet') SH.close();
   else if (a === 'quicklist') { const li = { id: 'l' + Date.now().toString(36), name: '我的菜單', ids: [d.id] }; S.lists.push(li); save(); SH.close(); toast('已加入「我的菜單」', { label: '查看', run: () => (location.hash = '#/lists/' + li.id) }); }
   else if (a === 'addto') {
@@ -498,7 +514,8 @@ function boot() {
   Promise.all([fetch('data/videos.json').then(r => { if (!r.ok) throw r; return r.json(); }),
     fetch('data/programs.json').then(r => (r.ok ? r.json() : [])).catch(() => []),
     fetch('data/cues.json').then(r => (r.ok ? r.json() : {})).catch(() => ({}))])
-    .then(([v, p, c]) => { V = v; P = p; CUES = c && typeof c === 'object' ? c : {}; VM = Object.fromEntries(V.map(x => [x.id, x])); render(); })
+    .then(([v, p, c]) => { V = v; P = p; CUES = c && typeof c === 'object' ? c : {}; VM = Object.fromEntries(V.map(x => [x.id, x])); render();
+      if (window.Cloud) { const e = Cloud.error(); if (e) toast('Google 登入沒有完成：' + e); cloudSync(!Cloud.justSignedIn()); } })
     .catch(() => { $('app').setAttribute('aria-busy', 'false'); $('app').innerHTML = '<div class="empty"><p>資料載入失敗，請檢查網路後再試一次。</p><button type="button" class="btn primary" id="retry">重新載入</button></div>'; $('retry').onclick = boot; });
 }
 boot();

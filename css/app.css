@@ -227,3 +227,5 @@ body:has(dialog.player[open]) .toast{inset:calc(72px + env(safe-area-inset-top))
 .today .history summary{cursor:pointer;font-weight:800}
 .today .history ul{margin:8px 0 0;padding-left:1.2em;line-height:1.7}
 .today .history .note{font-size:12px;color:var(--ink-2);margin:6px 0 0}
+.today .acct{font-size:13px;color:var(--ink-2);margin:10px 2px 0;line-height:1.6}
+.linkbtn{background:none;border:0;padding:0 4px;font:inherit;font-weight:800;color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:32px}
