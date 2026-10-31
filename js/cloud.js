@@ -16,7 +16,8 @@
       A = { at: q.get('access_token'), rt: q.get('refresh_token'), exp: +q.get('expires_at') || Math.floor(Date.now() / 1000) + (+q.get('expires_in') || 3600), id: c.sub, email: c.email || '', fresh: true };
       store();
     } else err = q.get('error_description') || q.get('error') || '登入失敗';
-    history.replaceState(null, '', location.pathname + location.search + '#/');
+    // 取消登入時 Supabase 也會把 ?error=… 放在網址，一併清掉
+    history.replaceState(null, '', location.pathname + (/[?&]error=/.test(location.search) ? '' : location.search) + '#/');
   }
   function token() {
     if (!A) return Promise.reject(new Error('not signed in'));
