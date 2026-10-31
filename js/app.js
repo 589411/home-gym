@@ -57,17 +57,26 @@ const tb = d => (d <= 900 ? 't15' : d <= 1800 ? 't30' : 't45');
 const ib = n => (n <= 2 ? 'low' : n === 3 ? 'mid' : 'high');
 
 // ---------- 本機狀態 ----------
-let S = { lists: [], done: {}, last: null, f: { parts: [], equip: [], time: [], inten: [], level: [] } };
+// log：每次練完都記一筆 {id, t}（done 只記每支影片第一次，重練、隔天再練都不會留下紀錄）
+let S = { lists: [], done: {}, log: [], last: null, f: { parts: [], equip: [], time: [], inten: [], level: [] } };
 try { const o = JSON.parse(localStorage.getItem('gym.v1') || '{}'); S = { ...S, ...o, f: { ...S.f, ...(o.f || {}) } }; } catch (e) {}
+if (!Array.isArray(S.log)) S.log = [];
+// 舊資料移轉：把 done 裡的第一次完成時間補進 log
+{ const seen = new Set(S.log.map(x => x.id + '@' + x.t)); for (const [id, t] of Object.entries(S.done)) if (!seen.has(id + '@' + t)) S.log.push({ id, t }); S.log.sort((a, b) => a.t - b.t); }
+// 請瀏覽器不要在空間不足時自動清掉這個網站的資料（使用者手動「清除網站資料」時仍會清掉）
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
 const save = () => { try { localStorage.setItem('gym.v1', JSON.stringify(S)); } catch (e) {} };
+save(); // 移轉後的 log 立刻寫回
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const mins = s => Math.max(1, Math.round((s || 0) / 60));
 const mmss = s => { s = Math.max(0, Math.round(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const day = t => { const d = new Date(t); return d.getFullYear() * 400 + d.getMonth() * 32 + d.getDate(); };
-const doneToday = () => Object.values(S.done).some(t => day(t) === day(Date.now()));
+const doneToday = () => S.log.some(x => day(x.t) === day(Date.now()));
+const trainedDays = () => new Set(S.log.map(x => day(x.t)));
+const totalDays = () => trainedDays().size;
 function streak() {
-  const days = new Set(Object.values(S.done).map(day)); let n = 0; const t = new Date();
+  const days = trainedDays(); let n = 0; const t = new Date();
   if (!days.has(day(t))) t.setDate(t.getDate() - 1);
   while (days.has(day(t))) { n++; t.setDate(t.getDate() - 1); }
   return n;
@@ -131,12 +140,12 @@ let filtersOpen = false;
 function todayBlock(rows) {
   const s = streak(), nx = nextUp();
   const status = doneToday() ? `<span class="pill good">${icon('check', '✓')}今天練過了</span>` : '<span class="pill">今天還沒練</span>';
-  const fl = s ? `<span class="pill flame">${icon('flame')}連續 ${s} 天</span>` : '';
+  const fl = (s ? `<span class="pill flame">${icon('flame')}連續 ${s} 天</span>` : '') + (totalDays() ? `<span class="pill">累計 ${totalDays()} 天</span>` : '');
   const cont = nx ? `<button class="today-main" data-act="cont"><img alt="" src="${thumb(nx.v.id)}"><span class="tm-body"><span class="k">${nx.kind}</span><span class="t">${esc(nx.title)}</span><span class="s">${esc(nx.v.title)}・${mins(nx.v.duration)} 分</span></span><span class="tm-go">${UI.play}</span></button>`
     : `<a class="today-main ghost" href="#/series"><span class="tm-body"><span class="k">還沒有進行中的課表</span><span class="t">挑一個每日跟練系列</span><span class="s">28–31 天，一天一支，系統幫你記第幾天</span></span><span class="tm-go">${UI.next}</span></a>`;
   const rand = rows.length ? `<button class="today-rand" data-act="rand">${icon('dice')}<span><b>隨機一支</b><small>${S.f.parts.length ? S.f.parts.map(p => PN[p]).join('・') : '從精選'}${S.f.parts.length ? '的精選' : '中'}挑</small></span></button>` : '';
   return `<section class="today" aria-label="今天的訓練"><div class="today-head"><h2>今天的訓練</h2><span>${status}${fl}</span></div>
-    <div class="today-grid">${cont}${rand}</div></section>`;
+    <div class="today-grid">${cont}${rand}</div>${historyBlock()}</section>`;
 }
 function home(kind) {
   const isGuide = kind === 'guide', rows = filtered(kind); ctx = rows.map(v => v.id);
@@ -212,6 +221,16 @@ function lists(id) {
 }
 
 // ---------- 路由（重繪時保留鍵盤焦點） ----------
+// 最近 14 個練習日：哪天、練了哪些影片
+function historyBlock() {
+  if (!S.log.length) return '';
+  const T = {}; P.forEach(p => p.days.forEach(d => (T[d.id] = d.title))); V.forEach(v => (T[v.id] = v.title));
+  const by = new Map();
+  for (const x of [...S.log].sort((a, b) => b.t - a.t)) { const k = new Date(x.t).toDateString(); if (!by.has(k)) by.set(k, { t: x.t, ids: [] }); const g = by.get(k); if (!g.ids.includes(x.id)) g.ids.push(x.id); }
+  const rows = [...by.values()].slice(0, 14).map(g => { const d = new Date(g.t);
+    return `<li><b>${d.getMonth() + 1}/${d.getDate()}（${'日一二三四五六'[d.getDay()]}）</b> ${g.ids.map(id => esc(T[id] || id)).join('、')}</li>`; }).join('');
+  return `<details class="history"><summary>練習紀錄（累計 ${totalDays()} 天）</summary><ul>${rows}</ul><p class="note">紀錄只存在這個瀏覽器；清除瀏覽器資料會不見。</p></details>`;
+}
 const TABS = [['#/', '首頁'], ['#/series', '跟練系列'], ['#/guides', '動作講解'], ['#/lists', '我的清單']];
 const fkey = el => el && el.dataset && el.dataset.act ? JSON.stringify(el.dataset) : null;
 function render(routeChanged) {
@@ -345,7 +364,13 @@ function zhCaptions() {
     }, 500);
   } catch (e) {}
 }
-function finish() { const id = queue[qi]; const first = !doneToday(); if (!S.done[id]) { S.done[id] = Date.now(); save(); } return first; }
+function finish() {
+  const id = queue[qi], first = !doneToday(), now = Date.now();
+  if (!S.done[id]) S.done[id] = now;
+  // 同一支影片同一天只記一次（避免連按「完成這支」重複），隔天重練會再記
+  if (!S.log.some(x => x.id === id && day(x.t) === day(now))) S.log.push({ id, t: now });
+  save(); return first;
+}
 function celebrate(auto) {
   finish(); const s = streak(), hasNext = qi < queue.length - 1;
   $('povs').textContent = s > 1 ? `連續 ${s} 天` : '今天的第一練完成';
@@ -398,6 +423,8 @@ P$.dlg.addEventListener('keydown', e => {
   else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFs(); }
 });
 P$.dlg.addEventListener('close', () => {
+  // 沒看到最後、也沒按「完成這支」就關掉：看超過 80% 仍算練過
+  try { if (yt && ytReady && !useSim()) { const d = yt.getDuration() || 0; if (d > 0 && yt.getCurrentTime() / d >= 0.8) finish(); } } catch (e) {}
   stopPoll(); clearTimeout(celebrate.t); keepAwake(false);
   try { yt && ytReady && yt.stopVideo(); } catch (e) {}
   if (isFs()) { try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {} }
